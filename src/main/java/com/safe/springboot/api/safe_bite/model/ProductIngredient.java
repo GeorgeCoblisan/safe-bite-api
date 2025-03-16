@@ -12,7 +12,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class ProductIngredient {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

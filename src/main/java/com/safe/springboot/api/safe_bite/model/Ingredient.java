@@ -4,6 +4,7 @@ import com.safe.springboot.api.safe_bite.enums.RiskLevel;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,12 +26,15 @@ public class Ingredient {
     @Column(unique = true, nullable = false)
     private String code;
 
+    @Column(nullable = false)
+    private String type;
+
     @Enumerated(EnumType.STRING)
     private RiskLevel riskLevel;
 
     @Column(columnDefinition = "text")
     private String effects;
 
-    @OneToMany(mappedBy = "ingredient", cascade = CascadeType.ALL)
-    private List<ProductIngredient> productIngredients;
+    @OneToMany(mappedBy = "ingredient", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<ProductIngredient> productIngredients = new ArrayList<>();
 }
