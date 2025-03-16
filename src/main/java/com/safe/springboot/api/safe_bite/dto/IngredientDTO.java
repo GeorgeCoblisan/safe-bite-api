@@ -13,6 +13,8 @@ public class IngredientDTO {
 
     private String code;
 
+    private String type;
+
     private RiskLevel riskLevel;
 
     private String effects;

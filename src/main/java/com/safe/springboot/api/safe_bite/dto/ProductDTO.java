@@ -1,8 +1,8 @@
 package com.safe.springboot.api.safe_bite.dto;
 
+import com.safe.springboot.api.safe_bite.enums.SourceProduct;
 import lombok.*;
 
-import javax.xml.transform.Source;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -14,7 +14,9 @@ import java.util.List;
 public class ProductDTO {
     private String barcode;
 
-    private Source sourceProduct;
+    private String name;
+
+    private SourceProduct sourceProduct;
 
     private LocalDateTime lastUpdated;
 
