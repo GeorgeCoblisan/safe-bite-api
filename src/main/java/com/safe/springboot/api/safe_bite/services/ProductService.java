@@ -1,5 +1,6 @@
 package com.safe.springboot.api.safe_bite.services;
 
+import com.safe.springboot.api.safe_bite.dto.CreateProductDto;
 import com.safe.springboot.api.safe_bite.dto.OpenFoodFactsProduct;
 import com.safe.springboot.api.safe_bite.dto.OpenFoodFactsResponse;
 import com.safe.springboot.api.safe_bite.dto.ProductDTO;
@@ -50,7 +51,9 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductDTO addProduct(String barcode) {
+    public ProductDTO addProduct(CreateProductDto createProductDto) {
+        String barcode = createProductDto.getBarcode();
+
         Optional<Product> existingProduct = productRepository.findByBarcode(barcode);
 
         if (existingProduct.isPresent()) {
@@ -111,9 +114,9 @@ public class ProductService {
                 ? openFoodFactsProduct.getAdditives_original_tags()
                 : openFoodFactsProduct.getAdditives_tags();
 
-        return additives.stream()
+        return additives != null ? additives.stream()
                 .filter(tag -> tag.startsWith("en:"))
                 .map(tag -> tag.replace("en:", "").toUpperCase())
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()) : List.of();
     }
 }

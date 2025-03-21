@@ -1,5 +1,6 @@
 package com.safe.springboot.api.safe_bite.controllers;
 
+import com.safe.springboot.api.safe_bite.dto.CreateProductDto;
 import com.safe.springboot.api.safe_bite.dto.ProductDTO;
 import com.safe.springboot.api.safe_bite.services.ProductService;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductDTO> createProduct(@RequestParam String barcode) {
-        return ResponseEntity.ok(productService.addProduct(barcode));
+    public ResponseEntity<ProductDTO> createProduct(@RequestBody CreateProductDto createProductDto) {
+        return ResponseEntity.ok(productService.addProduct(createProductDto));
     }
 }
