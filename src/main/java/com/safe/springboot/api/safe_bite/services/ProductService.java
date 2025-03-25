@@ -1,10 +1,10 @@
 package com.safe.springboot.api.safe_bite.services;
 
-import com.safe.springboot.api.safe_bite.dto.CreateProductDto;
 import com.safe.springboot.api.safe_bite.dto.OpenFoodFactsProduct;
 import com.safe.springboot.api.safe_bite.dto.OpenFoodFactsResponse;
 import com.safe.springboot.api.safe_bite.dto.ProductDTO;
 import com.safe.springboot.api.safe_bite.enums.SourceProduct;
+import com.safe.springboot.api.safe_bite.helperservices.TextractService;
 import com.safe.springboot.api.safe_bite.mapper.ProductMapper;
 import com.safe.springboot.api.safe_bite.model.Ingredient;
 import com.safe.springboot.api.safe_bite.model.Product;
@@ -17,13 +17,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.text.Normalizer;
 
 @Service
 public class ProductService {
@@ -35,13 +38,16 @@ public class ProductService {
 
     private final IngredientRepository ingredientRepository;
 
+    private final TextractService textractService;
+
     private static final String OPEN_FOOD_FACTS_API = "https://world.openfoodfacts.org/api/v3/product/";
 
-    public ProductService(ProductRepository productRepository, ProductMapper productMapper, RestTemplate restTemplate, IngredientRepository ingredientRepository) {
+    public ProductService(ProductRepository productRepository, ProductMapper productMapper, RestTemplate restTemplate, IngredientRepository ingredientRepository, TextractService textractService) {
         this.productRepository = productRepository;
         this.productMapper = productMapper;
         this.restTemplate = restTemplate;
         this.ingredientRepository = ingredientRepository;
+        this.textractService = textractService;
     }
 
     public ProductDTO findByBarcode(String barcode) {
@@ -51,29 +57,54 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductDTO addProduct(CreateProductDto createProductDto) {
-        String barcode = createProductDto.getBarcode();
-
+    public ProductDTO addProduct(String barcode, MultipartFile image) throws IOException {
         Optional<Product> existingProduct = productRepository.findByBarcode(barcode);
 
         if (existingProduct.isPresent()) {
             return productMapper.toDto(existingProduct.get());
         }
 
-        OpenFoodFactsProduct openFoodFactsProduct = this.getProduct(barcode);
+        List<Ingredient> matchedIngredients = List.of();
 
-        List<String> additiveCodes = this.extractAdditiveCodes(openFoodFactsProduct);
+        Product product;
 
-        List<Ingredient> matchedIngredients = additiveCodes.isEmpty() ? List.of() : ingredientRepository.findByCodeIn(additiveCodes);
+        if (image != null && !image.isEmpty()) {
+            String extractedText = textractService.extractText(image.getInputStream());
 
-        Product product = Product.builder()
-                .barcode(barcode)
-                .name(openFoodFactsProduct.getProductNameRo() != null
-                        ? openFoodFactsProduct.getProductNameRo()
-                        : null)
-                .sourceProduct(SourceProduct.OPENFOODFACTS)
-                .lastUpdated(LocalDateTime.now())
-                .build();
+            List<Ingredient> allIngredients = ingredientRepository.findAll();
+
+            String normalizedText = normalize(extractedText);
+
+            matchedIngredients = allIngredients.stream()
+                    .filter(i -> {
+                        String normalizedName = normalize(i.getName());
+                        String normalizedCode = i.getCode() != null ? i.getCode().toLowerCase() : "";
+                        return normalizedText.contains(normalizedName) || normalizedText.contains(normalizedCode);
+                    })
+                    .toList();
+
+            product = Product.builder()
+                    .barcode(barcode)
+                    .name(null)
+                    .sourceProduct(SourceProduct.USER)
+                    .lastUpdated(LocalDateTime.now())
+                    .build();
+        } else {
+            OpenFoodFactsProduct openFoodFactsProduct = this.getProduct(barcode);
+
+            List<String> additiveCodes = this.extractAdditiveCodes(openFoodFactsProduct);
+
+            matchedIngredients = additiveCodes.isEmpty() ? List.of() : ingredientRepository.findByCodeIn(additiveCodes);
+
+            product = Product.builder()
+                    .barcode(barcode)
+                    .name(openFoodFactsProduct.getProductNameRo() != null
+                            ? openFoodFactsProduct.getProductNameRo()
+                            : null)
+                    .sourceProduct(SourceProduct.OPENFOODFACTS)
+                    .lastUpdated(LocalDateTime.now())
+                    .build();
+        }
 
         if(!matchedIngredients.isEmpty()) {
             List<ProductIngredient> productIngredients = matchedIngredients.stream()
@@ -119,4 +150,13 @@ public class ProductService {
                 .map(tag -> tag.replace("en:", "").toUpperCase())
                 .collect(Collectors.toList()) : List.of();
     }
+
+    private String normalize(String input) {
+        if (input == null)
+            return "";
+
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "").toLowerCase();
+    }
+
 }
