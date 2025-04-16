@@ -100,7 +100,7 @@ public class ProductService {
                     .barcode(barcode)
                     .name(openFoodFactsProduct.getProductNameRo() != null
                             ? openFoodFactsProduct.getProductNameRo()
-                            : null)
+                            : openFoodFactsProduct.getProductNameEn())
                     .sourceProduct(SourceProduct.OPENFOODFACTS)
                     .lastUpdated(LocalDateTime.now())
                     .build();

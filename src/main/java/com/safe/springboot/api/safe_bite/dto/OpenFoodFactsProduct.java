@@ -19,4 +19,7 @@ public class OpenFoodFactsProduct {
 
     @JsonProperty("product_name_ro")
     private String productNameRo;
+
+    @JsonProperty("product_name_en")
+    private String productNameEn;
 }
