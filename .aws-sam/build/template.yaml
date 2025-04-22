@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SafeBite Lambda Function (Spring Boot)
+Resources:
+  SafeBiteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.safe.springboot.api.safe_bite.StreamLambdaHandler::handleRequest
+      Runtime: java21
+      CodeUri: SafeBiteFunction
+      MemorySize: 1024
+      Timeout: 15
+      Architectures:
+      - x86_64
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+    Metadata:
+      SamResourceId: SafeBiteFunction
