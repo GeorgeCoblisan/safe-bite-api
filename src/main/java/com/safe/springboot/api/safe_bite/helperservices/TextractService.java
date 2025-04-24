@@ -6,6 +6,7 @@ import software.amazon.awssdk.services.textract.TextractClient;
 import software.amazon.awssdk.services.textract.model.*;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.text.Normalizer;
@@ -19,24 +20,37 @@ public class TextractService {
     }
 
     public String extractText(InputStream documentStream) {
-        AnalyzeDocumentRequest request = AnalyzeDocumentRequest.builder()
-                .document(Document.builder()
-                        .bytes(SdkBytes.fromInputStream(documentStream))
-                        .build())
-                .featureTypes(FeatureType.LAYOUT)
-                .build();
+        try {
+            byte[] fileBytes = documentStream.readAllBytes();
 
-        AnalyzeDocumentResponse response = textractClient.analyzeDocument(request);
+            System.out.println("[Lambda] Received image with size (bytes): " + fileBytes.length);
+            System.out.println("🧪 [Lambda] First 4 bytes: " +
+                    Arrays.toString(Arrays.copyOfRange(fileBytes, 0, 4)));
 
-        List<Block> lines = response.blocks().stream()
-                .filter(block -> block.blockType() == BlockType.LINE)
-                .toList();
+            Document doc = Document.builder()
+                    .bytes(SdkBytes.fromByteArray(fileBytes))
+                    .build();
 
-        String fullText = lines.stream()
-                .map(Block::text)
-                .collect(Collectors.joining(" "));
+            AnalyzeDocumentRequest request = AnalyzeDocumentRequest.builder()
+                    .document(doc)
+                    .featureTypes(FeatureType.LAYOUT)
+                    .build();
 
-        return extractIngredientsTextFromOcr(fullText);
+            AnalyzeDocumentResponse response = textractClient.analyzeDocument(request);
+
+            List<Block> lines = response.blocks().stream()
+                    .filter(block -> block.blockType() == BlockType.LINE)
+                    .toList();
+
+            String fullText = lines.stream()
+                    .map(Block::text)
+                    .collect(Collectors.joining(" "));
+
+            return extractIngredientsTextFromOcr(fullText);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Textract failed: " + e.getMessage(), e);
+        }
     }
 
     private String extractIngredientsTextFromOcr(String text) {

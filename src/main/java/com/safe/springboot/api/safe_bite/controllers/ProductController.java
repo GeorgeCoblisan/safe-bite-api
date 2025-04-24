@@ -1,10 +1,10 @@
 package com.safe.springboot.api.safe_bite.controllers;
 
+import com.safe.springboot.api.safe_bite.dto.CreateProductDto;
 import com.safe.springboot.api.safe_bite.dto.ProductDTO;
 import com.safe.springboot.api.safe_bite.services.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
@@ -23,7 +23,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductDTO> createProduct(@RequestParam String barcode, @RequestPart(required = false) MultipartFile image) throws IOException {
-        return ResponseEntity.ok(productService.addProduct(barcode, image));
+    public ResponseEntity<ProductDTO> createProduct(@RequestBody CreateProductDto createProduct) throws IOException {
+        return ResponseEntity.ok(productService.addProduct(createProduct));
     }
 }

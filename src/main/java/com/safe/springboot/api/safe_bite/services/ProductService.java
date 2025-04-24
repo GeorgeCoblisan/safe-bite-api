@@ -1,5 +1,6 @@
 package com.safe.springboot.api.safe_bite.services;
 
+import com.safe.springboot.api.safe_bite.dto.CreateProductDto;
 import com.safe.springboot.api.safe_bite.dto.OpenFoodFactsProduct;
 import com.safe.springboot.api.safe_bite.dto.OpenFoodFactsResponse;
 import com.safe.springboot.api.safe_bite.dto.ProductDTO;
@@ -20,8 +21,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,7 +61,10 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductDTO addProduct(String barcode, MultipartFile image) throws IOException {
+    public ProductDTO addProduct(CreateProductDto createProduct) throws IOException {
+        String barcode = createProduct.getBarcode();
+        String base64Image = createProduct.getBase64Image();
+
         Optional<Product> existingProduct = productRepository.findByBarcode(barcode);
 
         if (existingProduct.isPresent()) {
@@ -68,8 +75,12 @@ public class ProductService {
 
         Product product;
 
-        if (image != null && !image.isEmpty()) {
-            String extractedText = textractService.extractText(image.getInputStream());
+        if (base64Image != null && !base64Image.isBlank()) {
+            String cleanedBase64 = base64Image.replaceFirst("^data:image/[^;]+;base64,", "");
+            byte[] decodedBytes = Base64.getDecoder().decode(cleanedBase64);
+            InputStream imageStream = new ByteArrayInputStream(decodedBytes);
+
+            String extractedText = textractService.extractText(imageStream);
 
             List<Ingredient> allIngredients = ingredientRepository.findAll();
 
